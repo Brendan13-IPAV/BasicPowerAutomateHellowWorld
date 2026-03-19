@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hello → Power Automate</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; }
+    input { width: 100%; padding: 10px; font-size: 16px; margin: 8px 0 12px; }
+    button { padding: 10px 14px; font-size: 16px; cursor: pointer; }
+    pre { background: #f6f8fa; padding: 12px; border-radius: 8px; overflow:auto; }
+    .ok { color: #0a7a0a; }
+    .bad { color: #b00020; }
+  </style>
+</head>
+<body>
+  <h1>Hello World → Power Automate → SharePoint</h1>
+
+  <div class="card">
+    <label for="txt">Enter a word or two</label>
+    <input id="txt" placeholder="e.g., koala" maxlength="100" />
+    <button id="sendBtn">Send to SharePoint</button>
+
+    <p id="status"></p>
+    <pre id="debug"></pre>
+  </div>
+
+  <script>
+    const FLOW_URL = "https://default1eae4a1dfcf54be981d4b609764048.37.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/159ee143e94a45a58ce85fe7f8d65628/triggers/manual/paths/invoke?api-version=1"; // <-- paste your Power Automate HTTP POST URL here
+    //const TOKEN = "TOKEN_HERE";     // <-- set this to match your flow check (or remove header if not using)
+
+    const statusEl = document.getElementById("status");
+    const debugEl = document.getElementById("debug");
+    const btn = document.getElementById("sendBtn");
+
+    function setStatus(msg, ok=true) {
+      statusEl.textContent = msg;
+      statusEl.className = ok ? "ok" : "bad";
+    }
+
+    btn.addEventListener("click", async () => {
+      const text = document.getElementById("txt").value.trim();
+      if (!text) {
+        setStatus("Please type something first.", false);
+        return;
+      }
+
+      const payload = {
+        text,
+        source: "github-pages",
+        clientTime: new Date().toISOString()
+      };
+
+      debugEl.textContent = "Sending:\n" + JSON.stringify(payload, null, 2);
+
+      try {
+        setStatus("Sending…");
+
+        const res = await fetch(FLOW_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-hello-token": TOKEN
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const bodyText = await res.text();
+        debugEl.textContent += "\n\nResponse:\n" + bodyText;
+
+        if (res.ok) {
+          setStatus("✅ Sent! Check your SharePoint list.");
+        } else {
+          setStatus("❌ Flow returned an error: " + res.status, false);
+        }
+      } catch (err) {
+        setStatus("❌ Request failed (network/CORS). See debug.", false);
+        debugEl.textContent += "\n\nError:\n" + (err?.message || String(err));
+      }
+    });
+  </script>
+</body>
+</html>
